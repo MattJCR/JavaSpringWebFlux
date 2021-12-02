@@ -61,6 +61,7 @@ public class ProductoController {
 
     //Este metodo devuelve con un delay en tiempo real los elementos a mostrar en la vista
     //Para este metodo vamos a usar un Chunk en modo Full
+    //Cuando está en modo chunk (con contrapresion) el tiempo de espera se reduce
     @GetMapping({"/listar-chunkfull"})
     public String listarChunkFull(Model model){
         log.info("GetMapping -> listar-chunkfull");
@@ -78,5 +79,29 @@ public class ProductoController {
 
         model.addAttribute("productos",productos);
         return "listar";
+    }
+
+    //Este metodo devuelve con un delay en tiempo real los elementos a mostrar en la vista
+    //Para este metodo vamos a usar un Chunk configurado con view name
+    @GetMapping({"/listar-chunkviewname"})
+    public String listarChunkViewName(Model model){
+        log.info("GetMapping -> listar-chunkviewname");
+        //Debemos de configurar el chunk view-name desde el aplication.properties
+        //Por defecto como se ve en el ejemplo anterior se aplica a todas las vistas
+        //Pero podemos especificar que sea solamente a una o varias vistas concretas
+        //Ejemplo: spring.thymeleaf.reactive.chunked-mode-view-names=listar-chunked
+        //Incluidos directorios si tenemos la estructura de directorios
+        //Ejemplo: spring.thymeleaf.reactive.chunked-mode-view-names=directorio/listar-chunked
+
+        Flux<Producto> productos = productoRepository.findAll()
+                .map(producto -> {
+                    producto.setNombre(producto.getNombre().toUpperCase());
+                    return producto;
+                }).repeat(5000);
+        productos.subscribe();
+        model.addAttribute("titulo","Listado de Productos DataDriver");
+
+        model.addAttribute("productos",productos);
+        return "listar-chunked";
     }
 }
