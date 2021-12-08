@@ -8,13 +8,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.SessionAttributes;
+import org.springframework.web.bind.support.SessionStatus;
 import org.thymeleaf.spring5.context.webflux.ReactiveDataDriverContextVariable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 
+//SessionAttributes permite guardar el estado de un atributo hasta que se completa
+@SessionAttributes("producto")
 @Controller
 public class ProductoController {
 
@@ -41,10 +46,25 @@ public class ProductoController {
         return Mono.just("form");
     }
 
+    //Muestra la vista del form pero pasando la isntancia de un producto existente para editarlo.
+    //Por defecto si no encuentra el producto devuelve una instancia nueva de Producto.
+    @GetMapping("/form/{id}")
+    public Mono<String> editarProducto(Model model, @PathVariable String id){
+        Mono<Producto> producto = productoService.findById(id).defaultIfEmpty(new Producto());
+        model.addAttribute("producto", producto);
+        model.addAttribute("titulo","Formulario Editar Producto");
+        return Mono.just("form");
+    }
+
     //Recogemos el producto enviado en el submit del form, lo guardamos y redireccionamos a
     //la vista de listar para visualizarlo
+    //Si utilizamos SessionAttributes como anotacion en el controlador
+    //Guardamos el estado del atributo (Con Id incluido si es para editar)
+    //Debemos pasarlo en el metodo donde se va a poner como completado para borrarlo
     @PostMapping("/form")
-    public Mono<String> guardarProducto(Producto producto){
+    public Mono<String> guardarProducto(Producto producto, SessionStatus sessionStatus){
+        //Se marca como completada la sesion temporal del producto
+        sessionStatus.isComplete();
         log.info("PRODUCTO AÑADIDO: " + producto.toString());
         return productoService.save(producto).thenReturn("redirect:/listar");
     }

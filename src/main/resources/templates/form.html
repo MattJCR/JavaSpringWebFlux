@@ -8,6 +8,13 @@
     <h1 th:text="${titulo}"></h1>
     <a th:href="@{/listar}">Volver a lista de productos</a>
     <form th:action="@{/form}" method="post" th:object="${producto}">
+       <!--
+            Este input es necesario si no utilizamos la etiqueta @SessionAttributes en el controlador
+            y poder guardar el id del producto si es para editarlo.
+            en ese caso de usarlo se guarda temporalmente en la sesion y solamente se actualizan
+            los campos editados por el formulario.
+            <input th:if="producto.id != null" type="hidden" th:field="*{id}"/>
+       -->
         <div><label for="nombre" >Nombre</label>
             <div><input type="text" th:field="*{nombre}"></div>
         </div>
@@ -18,7 +25,7 @@
             <div><input type="date" th:field="*{createAt}"></div>
         </div>
         <div>
-            <div><input type="submit" value="Crear"></div>
+            <div><input type="submit" value="Enviar"></div>
         </div>
     </form>
 </body>
