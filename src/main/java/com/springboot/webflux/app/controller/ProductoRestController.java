@@ -2,6 +2,7 @@ package com.springboot.webflux.app.controller;
 
 import com.springboot.webflux.app.models.documents.Producto;
 import com.springboot.webflux.app.repository.ProductoRepository;
+import com.springboot.webflux.app.services.ProductoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,16 +18,12 @@ public class ProductoRestController {
     private static final Logger log = LoggerFactory.getLogger(ProductoController.class);
 
     @Autowired
-    private ProductoRepository productoRepository;
+    private ProductoService productoService;
 
     @GetMapping()
     public Flux<Producto> getAllProductos(){
 
-        Flux<Producto> productos = productoRepository.findAll()
-                .map(producto -> {
-                    producto.setNombre(producto.getNombre().toUpperCase());
-                    return producto;
-                });
+        Flux<Producto> productos = productoService.findAllWithNameUppercase();
         productos.subscribe();
         return productos;
     }
@@ -34,7 +31,7 @@ public class ProductoRestController {
     public Mono<Producto> getProducto(@PathVariable String id){
 
         //Esta forma es simplemente para practicar los FLuxs y Monos
-        Flux<Producto> productos = productoRepository.findAll();
+        Flux<Producto> productos = productoService.findAll();
         //Filtramos por ID y recogemos solamente el primer Objecto con Next
         Mono<Producto> producto = productos
                 .filter(p-> p.getId().equals(id))

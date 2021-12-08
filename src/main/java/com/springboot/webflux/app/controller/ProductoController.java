@@ -1,18 +1,19 @@
 package com.springboot.webflux.app.controller;
 
 import com.springboot.webflux.app.models.documents.Producto;
-import com.springboot.webflux.app.repository.ProductoRepository;
+import com.springboot.webflux.app.services.ProductoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.thymeleaf.spring5.context.webflux.ReactiveDataDriverContextVariable;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.time.Duration;
-import java.util.Locale;
 
 @Controller
 public class ProductoController {
@@ -20,34 +21,40 @@ public class ProductoController {
     private static final Logger log = LoggerFactory.getLogger(ProductoController.class);
 
     @Autowired
-    private ProductoRepository productoRepository;
+    private ProductoService productoService;
 
     //Muestra un listado de produtos. Es igual que con MVC pero con objectos reactivos
     @GetMapping({"/listar", "/"})
-    public String listar(Model model){
+    public Mono<String> listar(Model model){
         log.info("GetMapping -> listar");
-        Flux<Producto> productos = productoRepository.findAll()
-                .map(producto -> {
-                    producto.setNombre(producto.getNombre().toUpperCase());
-                    return producto;
-                });
+        Flux<Producto> productos = productoService.findAllWithNameUppercase();
         productos.subscribe();
         model.addAttribute("titulo","Listado de Productos");
         model.addAttribute("productos",productos);
-        return "listar";
+        return Mono.just("listar");
+    }
+    //Muestra la vista del form al que pasamos previamente una nueva instancia de producto
+    @GetMapping("/form")
+    public Mono<String> crearProducto(Model model){
+        model.addAttribute("producto", new Producto());
+        model.addAttribute("titulo","Formulario de Producto");
+        return Mono.just("form");
     }
 
+    //Recogemos el producto enviado en el submit del form, lo guardamos y redireccionamos a
+    //la vista de listar para visualizarlo
+    @PostMapping("/form")
+    public Mono<String> guardarProducto(Producto producto){
+        log.info("PRODUCTO AÑADIDO: " + producto.toString());
+        return productoService.save(producto).thenReturn("redirect:/listar");
+    }
 
     //Este metodo devuelve con un delay en tiempo real los elementos a mostrar en la vista
     //Para este caso usamos una de las formas con ReactiveDataDriverContextVariable
     @GetMapping({"/listar-datadriver"})
     public String listarDataDriver(Model model){
         log.info("GetMapping -> listar-datadriver");
-        Flux<Producto> productos = productoRepository.findAll()
-                .map(producto -> {
-                    producto.setNombre(producto.getNombre().toUpperCase());
-                    return producto;
-                }).delayElements(Duration.ofSeconds(1));
+        Flux<Producto> productos = productoService.findAllWithNameUppercase().delayElements(Duration.ofSeconds(1));
         productos.subscribe();
         model.addAttribute("titulo","Listado de Productos DataDriver");
         //Con ReactiveDataDriverContextVariable podemos enviar elementos a la vista por lotes
@@ -69,11 +76,7 @@ public class ProductoController {
         //Por defecto este está en 0 pero para simular un numero de bytes
         //que se van enviando vamos a cambiarlo a 1024 0 512
         //Ejemplo: spring.thymeleaf.reactive.max-chunk-size=1024
-        Flux<Producto> productos = productoRepository.findAll()
-                .map(producto -> {
-                    producto.setNombre(producto.getNombre().toUpperCase());
-                    return producto;
-                }).repeat(5000);
+        Flux<Producto> productos = productoService.findAllWithNameUppercaseRepeat(5000L);
         productos.subscribe();
         model.addAttribute("titulo","Listado de Productos DataDriver");
 
@@ -93,11 +96,7 @@ public class ProductoController {
         //Incluidos directorios si tenemos la estructura de directorios
         //Ejemplo: spring.thymeleaf.reactive.chunked-mode-view-names=directorio/listar-chunked
 
-        Flux<Producto> productos = productoRepository.findAll()
-                .map(producto -> {
-                    producto.setNombre(producto.getNombre().toUpperCase());
-                    return producto;
-                }).repeat(5000);
+        Flux<Producto> productos = productoService.findAllWithNameUppercaseRepeat(5000L);
         productos.subscribe();
         model.addAttribute("titulo","Listado de Productos DataDriver");
 
